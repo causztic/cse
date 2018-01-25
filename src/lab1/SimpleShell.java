@@ -4,6 +4,15 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 
+/*
+ * SimpleShell.
+ * Author: Lim Yao Jie
+ * Accepts commands with leading and trailing spaces
+ * Accepts leading and trailing spaces for cd and saves to history as-is (similar to bash)
+ * Error checking for historical commands to prevent out-of-bounds
+ * Accepts multiple .. on directory navigation
+ */
+
 public class SimpleShell {
 	static List<String> history = new ArrayList<>();
 	public static void main(String[] args) throws java.io.IOException {
@@ -12,16 +21,16 @@ public class SimpleShell {
 		ProcessBuilder pb = new ProcessBuilder();
 		boolean historyCommand = false;
 		while (true) {
-			// read what the user entered
+			// read what the user entered if it wasn't called by history.
 			if (!historyCommand){
 				System.out.print("jsh>");
 				commandLine = console.readLine();
 			}
 			else {
+				// call the history function and turn it off
 				historyCommand = false;
 			}
-			// TODO: adding a history feature
-
+			commandLine = commandLine.trim(); // remove leading and trailing whitespace
 			// if the user entered a return, just loop again
 			if (commandLine.equals("")) {
 				continue;
@@ -36,8 +45,9 @@ public class SimpleShell {
 					currentDir = new File(currentDir.getAbsolutePath());
 
 					String directory = "";
-					// support .., ., ~
+					// support multiple .., ., ~
 					for (int i = 0; i < directoryArgs.length; i++) {
+						directoryArgs[i] = directoryArgs[i].trim(); // trim directory
 						if (directoryArgs[i].length() == 0) {
 							// root directory
 							directory += "/";
@@ -88,7 +98,7 @@ public class SimpleShell {
 							history.add(commandLine);
 						}
 						historyCommand = true;
-					} catch (ArrayIndexOutOfBoundsException e){
+					} catch (IndexOutOfBoundsException e){
 						System.out.println(commandList[0] + ": event not found.");
 					}
 				} else {
