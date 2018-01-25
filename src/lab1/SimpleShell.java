@@ -5,11 +5,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class SimpleShell {
+	static List<String> history = new ArrayList<>();
 	public static void main(String[] args) throws java.io.IOException {
 		String commandLine = "";
 		BufferedReader console = new BufferedReader(new InputStreamReader(System.in));
 		ProcessBuilder pb = new ProcessBuilder();
-		List<String> history = new ArrayList<>();
 		boolean historyCommand = false;
 		while (true) {
 			// read what the user entered
@@ -45,6 +45,8 @@ public class SimpleShell {
 							if (directoryArgs[i].charAt(0) == '~' && directoryArgs[i].length() == 1) {
 								// home directory
 								directory += homePath + "/";
+								currentDir = new File(directory);
+								
 							} else if (directoryArgs[i].equals("..")) {
 								directory = currentDir.getParent() + "/";
 								currentDir = currentDir.getParentFile();
@@ -53,6 +55,7 @@ public class SimpleShell {
 							} else {
 								// it is a normal directory
 								directory += directoryArgs[i] + "/";
+								currentDir = new File(directory);
 							}
 						}
 					}
@@ -89,15 +92,14 @@ public class SimpleShell {
 						System.out.println(commandList[0] + ": event not found.");
 					}
 				} else {
-					history.add(commandLine);
-					runCommand(pb, commandList);
+					runCommand(pb, commandList, commandLine);
 				}
 
 			}
 		}
 	}
 
-	private static void runCommand(ProcessBuilder pb, String[] commandList) {
+	private static void runCommand(ProcessBuilder pb, String[] commandList, String commandLine) {
 		try {
 			pb.command(commandList);
 			Process p = pb.start();
@@ -105,6 +107,7 @@ public class SimpleShell {
 			for (String line; (line = br.readLine()) != null;) {
 				System.out.println(line);
 			}
+			history.add(commandLine);
 			br.close();
 		} catch (IOException e) {
 			// e.printStackTrace();
