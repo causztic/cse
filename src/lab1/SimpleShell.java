@@ -2,6 +2,7 @@ package lab1;
 
 import java.io.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /*
@@ -21,7 +22,6 @@ public class SimpleShell {
 		ProcessBuilder pb = new ProcessBuilder();
 		boolean historyCommand = false;
 		while (true) {
-			// read what the user entered if it wasn't called by history.
 			if (!historyCommand){
 				System.out.print("jsh>");
 				commandLine = console.readLine();
@@ -30,14 +30,15 @@ public class SimpleShell {
 				// call the history function and turn it off
 				historyCommand = false;
 			}
+			try {
+			// read what the user entered if it wasn't called by history.
 			commandLine = commandLine.trim(); // remove leading and trailing whitespace
 			// if the user entered a return, just loop again
 			if (commandLine.equals("")) {
 				continue;
 			} else {
 				String[] commandList = commandLine.split(" ");
-				if (commandList[0].equals("cd") && commandList.length > 1) {
-					String[] directoryArgs = commandList[1].split("/");
+				if (commandList[0].equals("cd")) {
 					String homePath = System.getProperty("user.home");
 					File currentDir = pb.directory();
 					if (currentDir == null)
@@ -45,13 +46,20 @@ public class SimpleShell {
 					currentDir = new File(currentDir.getAbsolutePath());
 
 					String directory = "";
-					// support multiple .., ., ~
-					for (int i = 0; i < directoryArgs.length; i++) {
-						directoryArgs[i] = directoryArgs[i].trim(); // trim directory
-						if (directoryArgs[i].length() == 0) {
-							// root directory
-							directory += "/";
+					if (commandList.length > 1){
+						String[] directoryArgs = commandList[1].split("/");
+						// support multiple .., ., ~
+						if (directoryArgs[0].length() == 0){
+							//root directory
+							directory = "/";
 						} else {
+							// current folder
+							directory += currentDir.getAbsolutePath() + "/" + directoryArgs[0] + "/";
+							currentDir = new File(directory);
+						}
+						directoryArgs = Arrays.copyOfRange(directoryArgs, 1, directoryArgs.length);
+						for (int i = 0; i < directoryArgs.length; i++) {
+							directoryArgs[i] = directoryArgs[i].trim(); // trim directory
 							if (directoryArgs[i].charAt(0) == '~' && directoryArgs[i].length() == 1) {
 								// home directory
 								directory += homePath + "/";
@@ -68,10 +76,18 @@ public class SimpleShell {
 								currentDir = new File(directory);
 							}
 						}
+					} else {
+						// go to home folder
+						directory = homePath + "/";
+						currentDir = new File(directory);
 					}
 					//System.out.println(directory);
 					history.add(commandLine);
-					pb.directory(new File(directory));
+					File file = new File(directory);
+					if (file.exists())
+						pb.directory(file);
+					else
+						throw new FileNotFoundException(directory);
 				} else if (commandList[0].equals("history")) {
 					history.add(commandLine);
 					// history
@@ -106,6 +122,9 @@ public class SimpleShell {
 				}
 
 			}
+			} catch (FileNotFoundException f){
+				System.err.println("cd: " + f.getMessage() + ": No such file or directory");
+			}
 		}
 	}
 
@@ -121,7 +140,7 @@ public class SimpleShell {
 			br.close();
 		} catch (IOException e) {
 			// e.printStackTrace();
-			System.out.println(e.getMessage());
+			System.err.println(e.getMessage());
 		}
 	}
 }
