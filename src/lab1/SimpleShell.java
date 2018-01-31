@@ -128,7 +128,10 @@ public class SimpleShell {
 			}
 			} catch (FileNotFoundException f){
 				System.err.println("cd: " + f.getMessage() + ": No such file or directory");
-			} catch (Exception e){
+			} catch (NumberFormatException e){
+				System.err.println("Invalid number.");
+			}
+				catch (Exception e){
 				System.err.println(e.getMessage());
 			}
 		}
