@@ -95,15 +95,19 @@ public class SimpleShell {
 						System.out.println((i+1) + "\t" + history.get(i));
 					}
 					
-				} else if (commandList[0].equals("!!") && history.size() > 0) {
-					// run previous command
-					// dont save !! into history
-					commandLine = history.get(history.size()-1);
-					// if it is not history, save it
-					if (!commandLine.equals("history")){
-						history.add(commandLine);
+				} else if (commandList[0].equals("!!")) {
+					if (history.size() > 0){
+						// run previous command
+						// dont save !! into history
+						commandLine = history.get(history.size()-1);
+						// if it is not history, save it
+						if (!commandLine.equals("history")){
+							history.add(commandLine);
+						}
+						historyCommand = true;
+					} else {
+						throw new Exception("No history found.");
 					}
-					historyCommand = true;
 				} else if (commandList[0].startsWith("!")) {
 					// run a specific command
 					int index = Integer.parseInt(commandList[0].substring(1)) - 1;
@@ -124,6 +128,8 @@ public class SimpleShell {
 			}
 			} catch (FileNotFoundException f){
 				System.err.println("cd: " + f.getMessage() + ": No such file or directory");
+			} catch (Exception e){
+				System.err.println(e.getMessage());
 			}
 		}
 	}
