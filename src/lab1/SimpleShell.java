@@ -114,9 +114,6 @@ public class SimpleShell {
 					try {
 						commandLine = history.get(index);
 						// if it is not history, save it
-						if (!commandLine.equals("history")){
-							history.add(commandLine);
-						}
 						historyCommand = true;
 					} catch (IndexOutOfBoundsException e){
 						System.out.println(commandList[0] + ": event not found.");
