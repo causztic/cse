@@ -75,6 +75,7 @@ public class MedianThread {
 		final long endTime = System.currentTimeMillis();
 
 		// TODO: printout the final sorted array
+		// commented out because it lags
 		// System.out.println(sortedFullArray);
 
 		// TODO: printout median
@@ -156,7 +157,7 @@ class MedianMultiThread extends Thread {
 		list = mergeSort(list);
 	}
 
-	// TODO: implement merge sort here, recursive algorithm
+	// This merge sort was adapted from my previous term's code
 	private static int[] mergeSort(int[] input){
         if (input.length == 1){
             return input;
