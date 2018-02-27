@@ -24,3 +24,6 @@ hs_err_pid*
 
 # ignore docs
 ~$*
+
+# ignore DS_Store
+.DS_Store
