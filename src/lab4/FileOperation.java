@@ -7,6 +7,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.List;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -14,8 +15,9 @@ import java.util.Date;
 
 public class FileOperation {
 	private static File currentDirectory = new File(System.getProperty("user.dir"));
+	private static final List<String> SORT_ITEMS = Arrays.asList("time", "name", "size");
 	public static void main(String[] args) throws java.io.IOException {
-
+		
 		String commandLine;
 
 		BufferedReader console = new BufferedReader
@@ -40,7 +42,7 @@ public class FileOperation {
 
 			// check the command line, separate the words
 			String[] commandStr = commandLine.split(" ");
-			ArrayList<String> command = new ArrayList<String>();
+			List<String> command = new ArrayList<String>();
 			for (int i = 0; i < commandStr.length; i++) {
 				command.add(commandStr[i]);
 			}
@@ -55,6 +57,18 @@ public class FileOperation {
 				break;
 			case "display":
 				cat(currentDirectory, commandStr[1]);
+				break;
+			case "list":
+				// list property #{item}
+				String sortMethod = "";
+				String viewMethod = "";
+				if (commandStr.length > 1){
+					viewMethod = commandStr[1];
+				}
+				if (commandStr.length > 2){
+					sortMethod = commandStr[2];
+				}
+				ls(currentDirectory, viewMethod, sortMethod);
 				break;
 			default: 
 				// other commands
@@ -169,8 +183,21 @@ public class FileOperation {
 	 * @param display_method - control the list type
 	 * @param sort_method - control the sort type
 	 */
-	public static void ls(File dir, String display_method, String sort_method) {
-		// TODO: list files
+	public static void ls(File dir, String displayMethod, String sortMethod) {
+		if (displayMethod.equals("")){
+			for(File file: dir.listFiles()){
+				System.out.println(file.getName());
+			}
+		} else if (displayMethod.equals("property")) {
+			// property
+			File[] files = dir.listFiles();
+			if (SORT_ITEMS.contains(sortMethod)){
+				files = sortFileList(files, sortMethod);
+			}
+			for (File file: files){
+				System.out.printf("%-15s\tSize: %d\tLast Modified: %s\n", file.getName(), file.length(), new Date(file.lastModified()).toString());
+			}
+		}
 	}
 
 	/**
