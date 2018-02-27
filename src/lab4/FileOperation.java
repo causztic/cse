@@ -222,7 +222,7 @@ public class FileOperation {
 		File[] files = dir.listFiles();
 		if (files != null){
 			for (File file: files){
-				if (file.getName().endsWith(name))
+				if (file.getName().contains(name))
 					System.out.println(file.getAbsolutePath());
 				else
 					find(file, name);
