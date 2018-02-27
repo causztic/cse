@@ -44,41 +44,42 @@ public class FileOperation {
 			for (int i = 0; i < commandStr.length; i++) {
 				command.add(commandStr[i]);
 			}
+			
+			switch(commandStr[0]){
+			case "create": 
+				// Create a file
+				create(currentDirectory, commandStr[1]);
+				break;
+			case "delete":
+				delete(currentDirectory, commandStr[1]);
+				break;
+			case "display":
+				cat(currentDirectory, commandStr[1]);
+				break;
+			default: 
+				// other commands
+				ProcessBuilder pBuilder = new ProcessBuilder(command);
+				pBuilder.directory(currentDirectory);
+				try{
+					Process process = pBuilder.start();
+					// obtain the input stream
+					InputStream is = process.getInputStream();
+					InputStreamReader isr = new InputStreamReader(is);
+					BufferedReader br = new BufferedReader(isr);
 
-			// TODO: implement code to handle create here
+					// read what is returned by the command
+					String line;
+					while ( (line = br.readLine()) != null)
+						System.out.println(line);
 
-			// TODO: implement code to handle delete here
-
-			// TODO: implement code to handle display here
-
-			// TODO: implement code to handle list here
-
-			// TODO: implement code to handle find here
-
-			// TODO: implement code to handle tree here
-
-			// other commands
-			ProcessBuilder pBuilder = new ProcessBuilder(command);
-			pBuilder.directory(currentDirectory);
-			try{
-				Process process = pBuilder.start();
-				// obtain the input stream
-				InputStream is = process.getInputStream();
-				InputStreamReader isr = new InputStreamReader(is);
-				BufferedReader br = new BufferedReader(isr);
-
-				// read what is returned by the command
-				String line;
-				while ( (line = br.readLine()) != null)
-					System.out.println(line);
-
-				// close BufferedReader
-				br.close();
-			}
-			// catch the IOexception and resume waiting for commands
-			catch (IOException ex){
-				System.out.println(ex);
-				continue;
+					// close BufferedReader
+					br.close();
+				}
+				// catch the IOexception and resume waiting for commands
+				catch (IOException ex){
+					System.out.println(ex);
+					continue;
+				}
 			}
 		}
 	}
@@ -88,8 +89,14 @@ public class FileOperation {
 	 * @param dir - current working directory
 	 * @param command - name of the file to be created
 	 */
-	public static void Java_create(File dir, String name) {
-		// TODO: create a file
+	public static void create(File dir, String name) {
+		File file = new File(dir.getAbsolutePath() + "/" + name);
+		try {
+			file.createNewFile();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
 	/**
@@ -97,8 +104,10 @@ public class FileOperation {
 	 * @param dir - current working directory
 	 * @param name - name of the file to be deleted
 	 */
-	public static void Java_delete(File dir, String name) {
-		// TODO: delete a file
+	public static void delete(File dir, String name) {
+		File file = new File(dir.getAbsolutePath() + "/" + name);
+		if (!file.delete())
+			System.err.println("File not deleted. If it was a directory, ensure that it is empty.");
 	}
 
 	/**
@@ -106,8 +115,19 @@ public class FileOperation {
 	 * @param dir - current working directory
 	 * @param name - name of the file to be displayed
 	 */
-	public static void Java_cat(File dir, String name) {
-		// TODO: display a file
+	public static void cat(File dir, String name) {
+		File file = new File(dir.getAbsolutePath() + "/" + name);
+		BufferedReader reader;
+		String line;
+		try {
+			reader = new BufferedReader(new FileReader(file));
+			while ((line = reader.readLine()) != null) {
+			    System.out.println(line);
+			}
+			reader.close();
+		} catch (Exception e) {
+			System.err.println("File not found.");
+		}
 	}
 
 	/**
@@ -149,7 +169,7 @@ public class FileOperation {
 	 * @param display_method - control the list type
 	 * @param sort_method - control the sort type
 	 */
-	public static void Java_ls(File dir, String display_method, String sort_method) {
+	public static void ls(File dir, String display_method, String sort_method) {
 		// TODO: list files
 	}
 
@@ -159,7 +179,7 @@ public class FileOperation {
 	 * @param name - input string to find in file's name
 	 * @return flag - whether the input string is found in this directory and its subdirectories
 	 */
-	public static boolean Java_find(File dir, String name) {
+	public static boolean find(File dir, String name) {
 		boolean flag = false;
 		// TODO: find files
 		return flag;
@@ -171,7 +191,7 @@ public class FileOperation {
 	 * @param depth - maximum sub-level file to be displayed
 	 * @param sort_method - control the sort type
 	 */
-	public static void Java_tree(File dir, int depth, String sort_method) {
+	public static void tree(File dir, int depth, String sort_method) {
 		// TODO: print file tree
 	}
 
