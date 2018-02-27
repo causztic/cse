@@ -2,7 +2,6 @@ package lab4;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -16,6 +15,7 @@ import java.util.Date;
 public class FileOperation {
 	private static File currentDirectory = new File(System.getProperty("user.dir"));
 	private static final List<String> SORT_ITEMS = Arrays.asList("time", "name", "size");
+	private static int maxDepth = 9999;
 	public static void main(String[] args) throws java.io.IOException {
 		
 		String commandLine;
@@ -46,6 +46,7 @@ public class FileOperation {
 			for (int i = 0; i < commandStr.length; i++) {
 				command.add(commandStr[i]);
 			}
+			String sortMethod = "";
 			
 			switch(commandStr[0]){
 			case "create": 
@@ -60,7 +61,6 @@ public class FileOperation {
 				break;
 			case "list":
 				// list property #{item}
-				String sortMethod = "";
 				String viewMethod = "";
 				if (commandStr.length > 1){
 					viewMethod = commandStr[1];
@@ -69,6 +69,18 @@ public class FileOperation {
 					sortMethod = commandStr[2];
 				}
 				ls(currentDirectory, viewMethod, sortMethod);
+				break;
+			case "find":
+				find(currentDirectory, commandStr[1]);
+				break;
+			case "tree":
+				maxDepth = commandStr.length > 1 ? Integer.parseInt(commandStr[1]) - 1 : 9999;
+				
+				if (commandStr.length > 2){
+					sortMethod = commandStr[2];
+				}
+				
+				tree(currentDirectory, maxDepth, sortMethod);
 				break;
 			default: 
 				// other commands
@@ -108,7 +120,6 @@ public class FileOperation {
 		try {
 			file.createNewFile();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
@@ -208,7 +219,15 @@ public class FileOperation {
 	 */
 	public static boolean find(File dir, String name) {
 		boolean flag = false;
-		// TODO: find files
+		File[] files = dir.listFiles();
+		if (files != null){
+			for (File file: files){
+				if (file.getName().endsWith(name))
+					System.out.println(file.getAbsolutePath());
+				else
+					find(file, name);
+			}	
+		}
 		return flag;
 	}
 
@@ -218,10 +237,23 @@ public class FileOperation {
 	 * @param depth - maximum sub-level file to be displayed
 	 * @param sort_method - control the sort type
 	 */
-	public static void tree(File dir, int depth, String sort_method) {
-		// TODO: print file tree
+	public static void tree(File dir, int depth, String sortMethod) {
+		File[] files = dir.listFiles();
+		if (files != null){
+			if (SORT_ITEMS.contains(sortMethod)){
+				files = sortFileList(files, sortMethod);
+			}
+			for (File file: files){
+				int tabCount = maxDepth - depth;
+				String tabs = "";
+				for (int i = 0; i < tabCount; i++){
+					tabs += "   ";
+				}
+				System.out.println(tabs + (tabCount > 0 ? "|-" : "") + file.getName());
+				if (depth > 0){
+					tree(file, depth - 1, sortMethod);
+				}
+			}	
+		}
 	}
-
-	// TODO: define other functions if necessary for the above functions
-
 }
