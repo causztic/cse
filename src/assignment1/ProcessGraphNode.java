@@ -53,6 +53,7 @@ public class ProcessGraphNode {
             parents.add(parent);
         }
     }
+    
     public void setInputFile(File inputFile) {
         this.inputFile = inputFile;
     }

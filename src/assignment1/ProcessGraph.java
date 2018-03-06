@@ -17,8 +17,7 @@ public class ProcessGraph {
         System.out.println();
         System.out.println("Graph info:");
         try{
-            for (ProcessGraphNode node :
-                    nodes) {
+            for (ProcessGraphNode node : nodes) {
                 System.out.print("Node "+ node.getNodeId()+": \nParent: ");
                 if (node.getParents().isEmpty()) System.out.print("none");
                 for (ProcessGraphNode parentnode :

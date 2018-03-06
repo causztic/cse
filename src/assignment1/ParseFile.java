@@ -39,20 +39,6 @@ public class ParseFile {
                 ProcessGraph.nodes.get(index).setInputFile(new File(quatiles[2]));
                 //setup output
                 ProcessGraph.nodes.get(index).setOutputFile(new File(quatiles[3]));
-                //setup parent
-                for (ProcessGraphNode node : ProcessGraph.nodes) {
-                    for (ProcessGraphNode childNode : node.getChildren()) {
-                        ProcessGraph.nodes.get(childNode.getNodeId()).addParent(ProcessGraph.nodes.get(node.getNodeId()));
-                    }
-                }
-                //mark initial runnable
-                for (ProcessGraphNode node:ProcessGraph.nodes) {
-                    if (node.getParents().isEmpty()){
-                        node.setRunnable();
-                    }
-                }
-
-
                 index++;
             }
 
@@ -60,6 +46,14 @@ public class ParseFile {
                 int p = edgeParents.get(i);
                 int c = edgeChildren.get(i);
                 ProcessGraph.nodes.get(p).addChild(ProcessGraph.nodes.get(c));
+                ProcessGraph.nodes.get(c).addParent(ProcessGraph.nodes.get(p));
+            }
+            
+            //mark initial runnable
+            for (ProcessGraphNode node:ProcessGraph.nodes) {
+                if (node.getParents().isEmpty()){
+                    node.setRunnable();
+                }
             }
 
         } catch (Exception e){

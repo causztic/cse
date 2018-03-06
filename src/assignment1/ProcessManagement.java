@@ -1,13 +1,14 @@
 package assignment1;
 
 import java.io.File;
+import java.io.IOException;
 
 public class ProcessManagement {
 
     //set the working directory
     private static File currentDirectory = new File("files");
     //set the instructions file
-    private static File instructionSet = new File("test1.txt");
+    private static File instructionSet = new File("test2.txt");
     public static Object lock=new Object();
 
     public static void main(String[] args) throws InterruptedException {
@@ -16,21 +17,48 @@ public class ProcessManagement {
         ParseFile.generateGraph(new File(currentDirectory.getAbsolutePath() + "/"+instructionSet));
 
         ProcessGraph.printGraph();
-        // Print the graph information
-        // WRITE YOUR CODE
+        int executedCount = 0;
+        
+        // check if the all the processes have been executed
+       while (executedCount != ProcessGraph.nodes.size()){
+        	executedCount = 0;
+            for (ProcessGraphNode node: ProcessGraph.nodes){
+            	if (node.isExecuted()){
+            		// the node has been executed, add one to the count.
+            		executedCount++;
+            	}
+            	
+            	if (node.allParentsExecuted()){
+            		node.setRunnable();
+            	}
+            	
+            	if (node.isRunnable()){
+            		// it is ready to run
+            		ProcessBuilder pBuilder = new ProcessBuilder();
+            		pBuilder.command(node.getCommand().split(" "));
+            		
+            		if (!node.getInputFile().getName().equals("stdin")){
+            			// it is stdin, get from command.
+            			// otherwise, set the input file based on the process.
+            			pBuilder.redirectInput(node.getInputFile());
+            		}
+            		
+            		if (!node.getOutputFile().getName().equals("stdout")){
+            			pBuilder.redirectOutput(node.getOutputFile());
+            		}
+            		
+            		try {
+						pBuilder.start().waitFor();
+						node.setExecuted();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+            	}
+            }
+            
+        }
 
-
-        // Using index of ProcessGraph, loop through each ProcessGraphNode, to check whether it is ready to run
-        // check if all the nodes are executed
-        // WRITE YOUR CODE
-
-        //mark all the runnable nodes
-        // WRITE YOUR CODE
-
-        //run the node if it is runnable
-        // WRITE YOUR CODE
-
-        System.out.println("All process finished successfully");
+        System.out.println("All processes finished successfully");
     }
 
 }
