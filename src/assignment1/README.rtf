@@ -1,0 +1,30 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1561\cocoasubrtf200
+{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\paperw11900\paperh16840\vieww12000\viewh15160\viewkind0
+\deftab720
+\pard\pardeftab720\sl276\slmult1\sa200\partightenfactor0
+
+\f0\fs22 \cf0 /*Programming Assignment 1\
+* Authors: Lim Yu Fei, Lim Yao Jie\
+* ID: 1002087, 1001997\
+*Date: 6/3/2018 */\
+\
+PURPOSE OF PROGRAM\
+The program uses UNIX system calls to traverse a Directed Acyclic Graph (DAG) of user programs in parallel. The program is written in Java and utilises ProcessBuilder to achieve the abovementioned. Command lines in a text file is parsed and the DAG of user programs is traversed and executed, thus modeling control and data dependencies. \
+\
+COMPILATION OF PROGRAM\
+javac -cp .  assignment1/ProcessManagement.java\
+\
+RUNNING OF PROGRAM\
+java assignment1.ProcessManagement filename\
+\
+The graph files input and output will be referenced by its current directory.\
+\
+DESCRIPTION OF PROGRAM\
+The program first parses the test file as its argument. A DAG of user programs is then created by the parsing of the test file. Following that, we check if all the processes have been executed. If not, for each process (node in the DAG), we check if the process has been executed and keep a count of the executed processes. At the same time, we check if the processes that have yet to be executed have all of their parent processes executed. If this condition is true, then we will execute the process. The loop keeps on going until the count of the executed processes is equal to the total number of processes.\
+\
+\
+\
+}
