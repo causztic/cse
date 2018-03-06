@@ -1,5 +1,7 @@
 package assignment1;
+
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Scanner;
 
 public class ParseFile {
@@ -8,6 +10,9 @@ public class ParseFile {
         try{
             Scanner fileIn=new Scanner(inputFile);
             int index=0;
+            ArrayList<Integer> edgeParents = new ArrayList<Integer>();
+            ArrayList<Integer> edgeChildren = new ArrayList<Integer>();
+
             while(fileIn.hasNext()){
                 String line=fileIn.nextLine();
                 String[] quatiles= line.split(":");
@@ -24,8 +29,8 @@ public class ParseFile {
                     int[] childrenId=new int[childrenStringArray.length];
                     for (int i = 0; i < childrenId.length; i++) {
                         childrenId[i]= Integer.parseInt(childrenStringArray[i]);
-                        ProcessGraph.addNode(childrenId[i]);
-                        ProcessGraph.nodes.get(index).addChild(ProcessGraph.nodes.get(childrenId[i]));
+                        edgeParents.add(index);
+                        edgeChildren.add(childrenId[i]);
                     }
                 }
                 //setup command
@@ -50,6 +55,13 @@ public class ParseFile {
 
                 index++;
             }
+
+            for (int i = 0; i < edgeParents.size(); i++) {
+                int p = edgeParents.get(i);
+                int c = edgeChildren.get(i);
+                ProcessGraph.nodes.get(p).addChild(ProcessGraph.nodes.get(c));
+            }
+
         } catch (Exception e){
             System.out.println("File not found!");
             e.printStackTrace();
