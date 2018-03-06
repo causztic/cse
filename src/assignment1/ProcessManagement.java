@@ -6,9 +6,9 @@ import java.io.IOException;
 public class ProcessManagement {
 
     //set the working directory
-    private static File currentDirectory = new File("files");
+    private static File currentDirectory = new File("");
     //set the instructions file
-    private static File instructionSet = new File("test2.txt");
+    private static File instructionSet = new File("graph-file1");
     public static Object lock=new Object();
 
     public static void main(String[] args) throws InterruptedException {

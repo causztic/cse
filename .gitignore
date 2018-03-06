@@ -1,3 +1,15 @@
+# ignore DS_Store
+.DS_Store
+
+# ignore all sample files
+/*
+!.gitignore
+!.classpath
+!.project
+!/src/
+!/bin/
+!/.settings/
+
 # Compiled class file
 *.class
 bin
@@ -24,6 +36,3 @@ hs_err_pid*
 
 # ignore docs
 ~$*
-
-# ignore DS_Store
-.DS_Store
