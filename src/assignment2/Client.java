@@ -11,13 +11,20 @@ import java.net.Socket;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
+import java.security.PublicKey;
 import java.security.SignatureException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 
-public class ClientWithoutSecurity {
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
 
+public class Client {
+	static final String CHALLENGE = "HotDogHeroesAreDeliciousAndJumpy";
+	private static byte[] challengeResponse = new byte[0];
 	public static void main(String[] args) {
 
 		String filename = "cat-1.txt";
@@ -52,7 +59,7 @@ public class ClientWithoutSecurity {
 			clientSocket = new Socket(serverAddress, port);
 			toServer = new DataOutputStream(clientSocket.getOutputStream());
 			fromServer = new DataInputStream(clientSocket.getInputStream());
-
+			challengeResponse = getChallenge(toServer, fromServer);
 			if (proveIdentity(toServer, fromServer)) {
 				System.out.println("Identity verified.");
 				System.out.println("Sending file...");
@@ -96,7 +103,12 @@ public class ClientWithoutSecurity {
 		long timeTaken = System.nanoTime() - timeStarted;
 		System.out.println("Program took: " + timeTaken / 1000000.0 + "ms to run");
 	}
-
+	private static byte[] getChallenge(DataOutputStream toServer, DataInputStream fromServer) throws IOException {
+		toServer.writeInt(3);
+		byte[] bytes = new byte[fromServer.readInt()];
+		fromServer.readFully(bytes);
+		return bytes;
+	}
 	private static boolean proveIdentity(DataOutputStream toServer, DataInputStream fromServer) throws IOException {
 		try {
 			InputStream fis = new FileInputStream("CA.crt");
@@ -114,7 +126,13 @@ public class ClientWithoutSecurity {
 			X509Certificate ServerCert = (X509Certificate) cf.generateCertificate(serverCertStream);
 			ServerCert.checkValidity();
 			ServerCert.verify(CAcert.getPublicKey());
-			return true;
+			
+			System.out.println("Certificate valid, verifying challenge..");
+			PublicKey serverKey = ServerCert.getPublicKey();
+			Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+			cipher.init(Cipher.DECRYPT_MODE, serverKey);
+			byte[] decrypted = cipher.doFinal(challengeResponse);
+			return new String(decrypted).equals(CHALLENGE);
 
 		} catch (CertificateException e) {
 			System.err.println("Invalid certificate.");
@@ -125,6 +143,15 @@ public class ClientWithoutSecurity {
 		} catch (NoSuchAlgorithmException e) {
 			e.printStackTrace();
 		} catch (NoSuchProviderException e) {
+			e.printStackTrace();
+		} catch (NoSuchPaddingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IllegalBlockSizeException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (BadPaddingException e) {
+			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		return false;

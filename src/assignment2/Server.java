@@ -1,6 +1,7 @@
 package assignment2;
 
 import java.io.BufferedOutputStream;
+import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
@@ -9,10 +10,16 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.security.KeyFactory;
+import java.security.PrivateKey;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.security.spec.KeySpec;
+import java.security.spec.PKCS8EncodedKeySpec;
 
-public class ServerWithoutSecurity {
+import javax.crypto.Cipher;
+
+public class Server {
 
 	public static void main(String[] args) {
 
@@ -79,6 +86,25 @@ public class ServerWithoutSecurity {
 					InputStream fileStream = new FileInputStream(f);
 					fileStream.read(file);
 					toClient.write(file);
+					fileStream.close();
+				} else if (packetType == 3){
+					// ask for the shared challenge message to be encrypted.
+					File f = new File("privateServer.der");
+					long byteLength = f.length();
+					byte[] file = new byte[(int) byteLength];
+					InputStream fileStream = new FileInputStream(f);
+					KeyFactory kf = KeyFactory.getInstance("RSA");
+					fileStream.read(file);
+					
+					KeySpec keySpec = new PKCS8EncodedKeySpec(file);
+					PrivateKey key = kf.generatePrivate(keySpec);
+					
+					Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+					
+					cipher.init(Cipher.ENCRYPT_MODE, key);
+					byte[] encrypted = cipher.doFinal(Client.CHALLENGE.getBytes());
+					toClient.writeInt(encrypted.length);
+					toClient.write(encrypted);
 					fileStream.close();
 				}
 
