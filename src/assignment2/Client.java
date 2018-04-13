@@ -25,9 +25,11 @@ import javax.crypto.NoSuchPaddingException;
 public class Client {
 	static final String CHALLENGE = "HotDogHeroesAreDeliciousAndJumpy";
 	private static byte[] challengeResponse = new byte[0];
+	private static PublicKey serverKey;
+	
 	public static void main(String[] args) {
 
-		String filename = "cat-1.txt";
+		String filename = "outcity.txt";
 		if (args.length > 0)
 			filename = args[0];
 
@@ -38,6 +40,10 @@ public class Client {
 		int port = 4321;
 		if (args.length > 2)
 			port = Integer.parseInt(args[2]);
+		
+		int mode = 1;
+		if (args.length > 3)
+			mode = Integer.parseInt(args[3]);
 
 		int numBytes = 0;
 
@@ -63,28 +69,37 @@ public class Client {
 			if (proveIdentity(toServer, fromServer)) {
 				System.out.println("Identity verified.");
 				System.out.println("Sending file...");
+				
+				if (mode == 1){
+					// CP-1
+					
+					// Send the filename
+					toServer.writeInt(0);
+					toServer.writeInt(filename.getBytes().length);
+					toServer.write(filename.getBytes());
+					// toServer.flush();
 
-				// Send the filename
-				toServer.writeInt(0);
-				toServer.writeInt(filename.getBytes().length);
-				toServer.write(filename.getBytes());
-				// toServer.flush();
+					// Open the file
+					fileInputStream = new FileInputStream(filename);
+					bufferedFileInputStream = new BufferedInputStream(fileInputStream);
 
-				// Open the file
-				fileInputStream = new FileInputStream(filename);
-				bufferedFileInputStream = new BufferedInputStream(fileInputStream);
+					byte[] fromFileBuffer = new byte[117];
+					byte[] encryptedBlock = new byte[0];
 
-				byte[] fromFileBuffer = new byte[117];
+					// Send the file
+					for (boolean fileEnded = false; !fileEnded;) {
+						numBytes = bufferedFileInputStream.read(fromFileBuffer);
+						// encrypt with their public key
+						Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+						cipher.init(Cipher.ENCRYPT_MODE, serverKey);
+						encryptedBlock = cipher.doFinal(fromFileBuffer);
+						fileEnded = numBytes < 117;
 
-				// Send the file
-				for (boolean fileEnded = false; !fileEnded;) {
-					numBytes = bufferedFileInputStream.read(fromFileBuffer);
-					fileEnded = numBytes < 117;
-
-					toServer.writeInt(1);
-					toServer.writeInt(numBytes);
-					toServer.write(fromFileBuffer);
-					toServer.flush();
+						toServer.writeInt(1);
+						toServer.writeInt(numBytes);
+						toServer.write(encryptedBlock); //fromFileBuffer);
+						toServer.flush();
+					}
 				}
 
 			} else {
@@ -128,7 +143,7 @@ public class Client {
 			ServerCert.verify(CAcert.getPublicKey());
 			
 			System.out.println("Certificate valid, verifying challenge..");
-			PublicKey serverKey = ServerCert.getPublicKey();
+			serverKey = ServerCert.getPublicKey();
 			Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
 			cipher.init(Cipher.DECRYPT_MODE, serverKey);
 			byte[] decrypted = cipher.doFinal(challengeResponse);

@@ -1,23 +1,25 @@
 package assignment2;
 
 import java.io.BufferedOutputStream;
-import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.security.Key;
 import java.security.KeyFactory;
+import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
-import java.security.cert.CertificateFactory;
-import java.security.cert.X509Certificate;
+import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
 import java.security.spec.PKCS8EncodedKeySpec;
 
 import javax.crypto.Cipher;
+import javax.crypto.NoSuchPaddingException;
 
 public class Server {
 
@@ -59,15 +61,22 @@ public class Server {
 					bufferedFileOutputStream = new BufferedOutputStream(fileOutputStream);
 
 				// If the packet is for transferring a chunk of the file
+				// for CP-1
 				} else if (packetType == 1) {
-
+					
+					Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+					cipher.init(Cipher.DECRYPT_MODE, getPrivateKey());
+					
 					int numBytes = fromClient.readInt();
-					byte [] block = new byte[numBytes];
-					fromClient.readFully(block, 0, numBytes);
-
-					if (numBytes > 0)
+					byte [] block = new byte[128];
+					fromClient.readFully(block, 0, 128);
+					block = cipher.doFinal(block);
+					
+					// decrypt the block and add it to the file stream.
+					if (numBytes > 0){
 						bufferedFileOutputStream.write(block, 0, numBytes);
-
+					}
+					
 					if (numBytes < 117) {
 						System.out.println("Closing connection...");
 
@@ -78,6 +87,7 @@ public class Server {
 						connectionSocket.close();
 					}
 				} else if (packetType == 2){
+					
 					// for sending the server's signed certificate
 					File f = new File("server.crt");
 					long byteLength = f.length();
@@ -87,30 +97,35 @@ public class Server {
 					fileStream.read(file);
 					toClient.write(file);
 					fileStream.close();
+					
 				} else if (packetType == 3){
+					
 					// ask for the shared challenge message to be encrypted.
-					File f = new File("privateServer.der");
-					long byteLength = f.length();
-					byte[] file = new byte[(int) byteLength];
-					InputStream fileStream = new FileInputStream(f);
-					KeyFactory kf = KeyFactory.getInstance("RSA");
-					fileStream.read(file);
-					
-					KeySpec keySpec = new PKCS8EncodedKeySpec(file);
-					PrivateKey key = kf.generatePrivate(keySpec);
-					
 					Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
-					
-					cipher.init(Cipher.ENCRYPT_MODE, key);
+					cipher.init(Cipher.ENCRYPT_MODE, getPrivateKey());
 					byte[] encrypted = cipher.doFinal(Client.CHALLENGE.getBytes());
 					toClient.writeInt(encrypted.length);
 					toClient.write(encrypted);
-					fileStream.close();
 				}
 
 			}
 		} catch (Exception e) {e.printStackTrace();}
 
+	}
+	
+	private static Key getPrivateKey() throws NoSuchAlgorithmException, NoSuchPaddingException, IOException, InvalidKeySpecException{
+		File f = new File("privateServer.der");
+		long byteLength = f.length();
+		byte[] file = new byte[(int) byteLength];
+		InputStream fileStream = new FileInputStream(f);
+		KeyFactory kf = KeyFactory.getInstance("RSA");
+		fileStream.read(file);
+		
+		KeySpec keySpec = new PKCS8EncodedKeySpec(file);
+		PrivateKey key = kf.generatePrivate(keySpec);
+		fileStream.close();
+		
+		return key;
 	}
 
 }
