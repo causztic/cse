@@ -20,6 +20,8 @@ import java.security.spec.PKCS8EncodedKeySpec;
 
 import javax.crypto.Cipher;
 import javax.crypto.NoSuchPaddingException;
+import javax.crypto.spec.SecretKeySpec;
+import javax.xml.bind.DatatypeConverter;
 
 public class Server {
 
@@ -41,6 +43,7 @@ public class Server {
 			connectionSocket = welcomeSocket.accept();
 			fromClient = new DataInputStream(connectionSocket.getInputStream());
 			toClient = new DataOutputStream(connectionSocket.getOutputStream());
+			Key privateKey = null;
 
 			while (!connectionSocket.isClosed()) {
 
@@ -64,8 +67,14 @@ public class Server {
 				// for CP-1
 				} else if (packetType == 1) {
 					
-					Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
-					cipher.init(Cipher.DECRYPT_MODE, getPrivateKey());
+					Cipher cipher = null;
+					if (privateKey != null){
+						cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
+						cipher.init(Cipher.DECRYPT_MODE, privateKey);
+					} else {
+						cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+						cipher.init(Cipher.DECRYPT_MODE, getPrivateKey());
+					}
 					
 					int numBytes = fromClient.readInt();
 					byte [] block = new byte[128];
@@ -106,6 +115,14 @@ public class Server {
 					byte[] encrypted = cipher.doFinal(Client.CHALLENGE.getBytes());
 					toClient.writeInt(encrypted.length);
 					toClient.write(encrypted);
+				} else if (packetType == 4) {
+					// establish a shared session key
+					System.out.println("establishing shared session key..");
+					byte[] shared = new byte[128];
+					fromClient.readFully(shared, 0, shared.length);
+					Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+					cipher.init(Cipher.DECRYPT_MODE, getPrivateKey());
+					privateKey = new SecretKeySpec(cipher.doFinal(shared), "AES");
 				}
 
 			}

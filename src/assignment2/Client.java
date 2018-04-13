@@ -20,7 +20,11 @@ import java.security.cert.X509Certificate;
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.KeyGenerator;
 import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SecretKey;
+import javax.crypto.SecretKeyFactory;
+import javax.xml.bind.DatatypeConverter;
 
 public class Client {
 	static final String CHALLENGE = "HotDogHeroesAreDeliciousAndJumpy";
@@ -29,7 +33,7 @@ public class Client {
 	
 	public static void main(String[] args) {
 
-		String filename = "outcity.txt";
+		String filename = "largeSize.txt";
 		if (args.length > 0)
 			filename = args[0];
 
@@ -70,36 +74,55 @@ public class Client {
 				System.out.println("Identity verified.");
 				System.out.println("Sending file...");
 				
+				// Send the filename
+				toServer.writeInt(0);
+				toServer.writeInt(filename.getBytes().length);
+				toServer.write(filename.getBytes());
+				// toServer.flush();
+
+				// Open the file
+				fileInputStream = new FileInputStream(filename);
+				bufferedFileInputStream = new BufferedInputStream(fileInputStream);
+
+				byte[] fromFileBuffer = new byte[117];
+				byte[] encryptedBlock = new byte[0];
+				Cipher cipher = null;
+				
 				if (mode == 1){
 					// CP-1
+					cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+					cipher.init(Cipher.ENCRYPT_MODE, serverKey);
+
+				} else {
+					// CP-2
 					
-					// Send the filename
-					toServer.writeInt(0);
-					toServer.writeInt(filename.getBytes().length);
-					toServer.write(filename.getBytes());
-					// toServer.flush();
+					// Establish a shared session key for sharing
+					KeyGenerator keyGen = KeyGenerator.getInstance("AES");
+					keyGen.init(128);
+					SecretKey secretKey = keyGen.generateKey();
+					cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+					 // encrypt the shared session key with the server's public key
+					cipher.init(Cipher.ENCRYPT_MODE, serverKey);
+					
+					toServer.writeInt(4);
+					toServer.write(cipher.doFinal(secretKey.getEncoded()));
+					
+					cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
+					cipher.init(Cipher.ENCRYPT_MODE, secretKey);
+					
+				}
+				
+				// Send the file
+				for (boolean fileEnded = false; !fileEnded;) {
+					numBytes = bufferedFileInputStream.read(fromFileBuffer);
+					// encrypt with their public key
+					encryptedBlock = cipher.doFinal(fromFileBuffer);
+					fileEnded = numBytes < 117;
 
-					// Open the file
-					fileInputStream = new FileInputStream(filename);
-					bufferedFileInputStream = new BufferedInputStream(fileInputStream);
-
-					byte[] fromFileBuffer = new byte[117];
-					byte[] encryptedBlock = new byte[0];
-
-					// Send the file
-					for (boolean fileEnded = false; !fileEnded;) {
-						numBytes = bufferedFileInputStream.read(fromFileBuffer);
-						// encrypt with their public key
-						Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
-						cipher.init(Cipher.ENCRYPT_MODE, serverKey);
-						encryptedBlock = cipher.doFinal(fromFileBuffer);
-						fileEnded = numBytes < 117;
-
-						toServer.writeInt(1);
-						toServer.writeInt(numBytes);
-						toServer.write(encryptedBlock); //fromFileBuffer);
-						toServer.flush();
-					}
+					toServer.writeInt(1);
+					toServer.writeInt(numBytes);
+					toServer.write(encryptedBlock); //fromFileBuffer);
+					toServer.flush();
 				}
 
 			} else {
