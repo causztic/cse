@@ -33,19 +33,19 @@ public class Client {
 	
 	public static void main(String[] args) {
 
-		String filename = "largeSize.txt";
+		String filename = "5mb";
 		if (args.length > 0)
 			filename = args[0];
 
 		String serverAddress = "localhost";
 		if (args.length > 1)
-			filename = args[1];
+			serverAddress = args[1];
 
 		int port = 4321;
 		if (args.length > 2)
 			port = Integer.parseInt(args[2]);
 		
-		int mode = 1;
+		int mode = 2;
 		if (args.length > 3)
 			mode = Integer.parseInt(args[3]);
 

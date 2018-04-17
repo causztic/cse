@@ -37,97 +37,102 @@ public class Server {
 
 		FileOutputStream fileOutputStream = null;
 		BufferedOutputStream bufferedFileOutputStream = null;
-
 		try {
 			welcomeSocket = new ServerSocket(port);
-			connectionSocket = welcomeSocket.accept();
-			fromClient = new DataInputStream(connectionSocket.getInputStream());
-			toClient = new DataOutputStream(connectionSocket.getOutputStream());
-			Key privateKey = null;
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		while (true) {
+			try {
+				connectionSocket = welcomeSocket.accept();
+				fromClient = new DataInputStream(connectionSocket.getInputStream());
+				toClient = new DataOutputStream(connectionSocket.getOutputStream());
+				Key privateKey = null;
 
-			while (!connectionSocket.isClosed()) {
+				while (!connectionSocket.isClosed()) {
 
-				int packetType = fromClient.readInt();
+					int packetType = fromClient.readInt();
 
-				// If the packet is for transferring the filename
-				if (packetType == 0) {
+					// If the packet is for transferring the filename
+					if (packetType == 0) {
 
-					System.out.println("Receiving file...");
+						System.out.println("Receiving file...");
 
-					int numBytes = fromClient.readInt();
-					byte [] filename = new byte[numBytes];
-					// Must use read fully!
-					// See: https://stackoverflow.com/questions/25897627/datainputstream-read-vs-datainputstream-readfully
-					fromClient.readFully(filename, 0, numBytes);
+						int numBytes = fromClient.readInt();
+						byte [] filename = new byte[numBytes];
+						// Must use read fully!
+						// See: https://stackoverflow.com/questions/25897627/datainputstream-read-vs-datainputstream-readfully
+						fromClient.readFully(filename, 0, numBytes);
 
-					fileOutputStream = new FileOutputStream("recv_"+new String(filename, 0, numBytes));
-					bufferedFileOutputStream = new BufferedOutputStream(fileOutputStream);
+						fileOutputStream = new FileOutputStream("recv_"+new String(filename, 0, numBytes));
+						bufferedFileOutputStream = new BufferedOutputStream(fileOutputStream);
 
-				// If the packet is for transferring a chunk of the file
-				// for CP-1
-				} else if (packetType == 1) {
-					
-					Cipher cipher = null;
-					if (privateKey != null){
-						cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
-						cipher.init(Cipher.DECRYPT_MODE, privateKey);
-					} else {
-						cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+					// If the packet is for transferring a chunk of the file
+					// for CP-1
+					} else if (packetType == 1) {
+						
+						Cipher cipher = null;
+						if (privateKey != null){
+							cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
+							cipher.init(Cipher.DECRYPT_MODE, privateKey);
+						} else {
+							cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+							cipher.init(Cipher.DECRYPT_MODE, getPrivateKey());
+						}
+						
+						int numBytes = fromClient.readInt();
+						byte [] block = new byte[128];
+						fromClient.readFully(block, 0, 128);
+						block = cipher.doFinal(block);
+						
+						// decrypt the block and add it to the file stream.
+						if (numBytes > 0){
+							bufferedFileOutputStream.write(block, 0, numBytes);
+						}
+						
+						if (numBytes < 117) {
+							System.out.println("Closing connection...");
+
+							if (bufferedFileOutputStream != null) bufferedFileOutputStream.close();
+							if (bufferedFileOutputStream != null) fileOutputStream.close();
+							fromClient.close();
+							toClient.close();
+							connectionSocket.close();
+						}
+					} else if (packetType == 2){
+						
+						// for sending the server's signed certificate
+						File f = new File("server.crt");
+						long byteLength = f.length();
+						byte[] file = new byte[(int) byteLength];
+						toClient.writeLong(byteLength);
+						InputStream fileStream = new FileInputStream(f);
+						fileStream.read(file);
+						toClient.write(file);
+						fileStream.close();
+						
+					} else if (packetType == 3){
+						
+						// ask for the shared challenge message to be encrypted.
+						Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+						cipher.init(Cipher.ENCRYPT_MODE, getPrivateKey());
+						byte[] encrypted = cipher.doFinal(Client.CHALLENGE.getBytes());
+						toClient.writeInt(encrypted.length);
+						toClient.write(encrypted);
+					} else if (packetType == 4) {
+						// establish a shared session key
+						System.out.println("establishing shared session key..");
+						byte[] shared = new byte[128];
+						fromClient.readFully(shared, 0, shared.length);
+						Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
 						cipher.init(Cipher.DECRYPT_MODE, getPrivateKey());
+						privateKey = new SecretKeySpec(cipher.doFinal(shared), "AES");
 					}
-					
-					int numBytes = fromClient.readInt();
-					byte [] block = new byte[128];
-					fromClient.readFully(block, 0, 128);
-					block = cipher.doFinal(block);
-					
-					// decrypt the block and add it to the file stream.
-					if (numBytes > 0){
-						bufferedFileOutputStream.write(block, 0, numBytes);
-					}
-					
-					if (numBytes < 117) {
-						System.out.println("Closing connection...");
 
-						if (bufferedFileOutputStream != null) bufferedFileOutputStream.close();
-						if (bufferedFileOutputStream != null) fileOutputStream.close();
-						fromClient.close();
-						toClient.close();
-						connectionSocket.close();
-					}
-				} else if (packetType == 2){
-					
-					// for sending the server's signed certificate
-					File f = new File("server.crt");
-					long byteLength = f.length();
-					byte[] file = new byte[(int) byteLength];
-					toClient.writeLong(byteLength);
-					InputStream fileStream = new FileInputStream(f);
-					fileStream.read(file);
-					toClient.write(file);
-					fileStream.close();
-					
-				} else if (packetType == 3){
-					
-					// ask for the shared challenge message to be encrypted.
-					Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
-					cipher.init(Cipher.ENCRYPT_MODE, getPrivateKey());
-					byte[] encrypted = cipher.doFinal(Client.CHALLENGE.getBytes());
-					toClient.writeInt(encrypted.length);
-					toClient.write(encrypted);
-				} else if (packetType == 4) {
-					// establish a shared session key
-					System.out.println("establishing shared session key..");
-					byte[] shared = new byte[128];
-					fromClient.readFully(shared, 0, shared.length);
-					Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
-					cipher.init(Cipher.DECRYPT_MODE, getPrivateKey());
-					privateKey = new SecretKeySpec(cipher.doFinal(shared), "AES");
 				}
-
-			}
-		} catch (Exception e) {e.printStackTrace();}
-
+			} catch (Exception e) {e.printStackTrace();}
+		}
 	}
 	
 	private static Key getPrivateKey() throws NoSuchAlgorithmException, NoSuchPaddingException, IOException, InvalidKeySpecException{
