@@ -21,7 +21,6 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import javax.crypto.Cipher;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.SecretKeySpec;
-import javax.xml.bind.DatatypeConverter;
 
 public class Server {
 
@@ -37,18 +36,21 @@ public class Server {
 
 		FileOutputStream fileOutputStream = null;
 		BufferedOutputStream bufferedFileOutputStream = null;
+		
 		try {
 			welcomeSocket = new ServerSocket(port);
 		} catch (IOException e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
+		
 		while (true) {
 			try {
 				connectionSocket = welcomeSocket.accept();
 				fromClient = new DataInputStream(connectionSocket.getInputStream());
 				toClient = new DataOutputStream(connectionSocket.getOutputStream());
 				Key privateKey = null;
+				byte[] challenge = new byte[0];
 
 				while (!connectionSocket.isClosed()) {
 
@@ -117,7 +119,7 @@ public class Server {
 						// ask for the shared challenge message to be encrypted.
 						Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
 						cipher.init(Cipher.ENCRYPT_MODE, getPrivateKey());
-						byte[] encrypted = cipher.doFinal(Client.CHALLENGE.getBytes());
+						byte[] encrypted = cipher.doFinal(challenge);
 						toClient.writeInt(encrypted.length);
 						toClient.write(encrypted);
 					} else if (packetType == 4) {
@@ -128,6 +130,10 @@ public class Server {
 						Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
 						cipher.init(Cipher.DECRYPT_MODE, getPrivateKey());
 						privateKey = new SecretKeySpec(cipher.doFinal(shared), "AES");
+					} else if (packetType == 5){
+						// receive a challenge message
+						challenge = new byte[fromClient.readInt()];
+ 						fromClient.readFully(challenge, 0, challenge.length);
 					}
 
 				}

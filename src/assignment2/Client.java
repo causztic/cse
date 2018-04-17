@@ -7,6 +7,7 @@ import java.io.DataOutputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigInteger;
 import java.net.Socket;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -16,6 +17,7 @@ import java.security.SignatureException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.util.Random;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -23,11 +25,19 @@ import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.KeyGenerator;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
-import javax.crypto.SecretKeyFactory;
-import javax.xml.bind.DatatypeConverter;
 
 public class Client {
-	static final String CHALLENGE = "HotDogHeroesAreDeliciousAndJumpy";
+	// in the assignment's AP we are focusing on authenticating the SecStore's identity.
+	
+	// in the previous AP, we needed a way for the client to know what is the actual challenge so that 
+	// it can compare with the decrypted challenge to prove the server's identity. If the same challenge
+	// message is used every time, the attacker would know the message to replay as the server's private key
+	// is always the same and encrypting the same message would generate the same hash every time.
+	
+	// to improve on the AP, the client instead generates a large prime number so that the hash cannot be 
+	// replayed by a rogue server. Furthermore, we ensure that the certificate is valid and it is not expired.
+	
+	private static final String CHALLENGE = String.valueOf(BigInteger.probablePrime(256, new Random()));
 	private static byte[] challengeResponse = new byte[0];
 	private static PublicKey serverKey;
 	
@@ -69,6 +79,9 @@ public class Client {
 			clientSocket = new Socket(serverAddress, port);
 			toServer = new DataOutputStream(clientSocket.getOutputStream());
 			fromServer = new DataInputStream(clientSocket.getInputStream());
+			System.out.println("Sending challenge..");
+			sendChallenge(toServer, fromServer);
+			System.out.println("Receiving challenge..");
 			challengeResponse = getChallenge(toServer, fromServer);
 			if (proveIdentity(toServer, fromServer)) {
 				System.out.println("Identity verified.");
@@ -146,6 +159,12 @@ public class Client {
 		byte[] bytes = new byte[fromServer.readInt()];
 		fromServer.readFully(bytes);
 		return bytes;
+	}
+	
+	private static void sendChallenge(DataOutputStream toServer, DataInputStream fromServer) throws IOException {
+		toServer.writeInt(5);
+		toServer.writeInt(CHALLENGE.getBytes().length);
+		toServer.write(CHALLENGE.getBytes());
 	}
 	private static boolean proveIdentity(DataOutputStream toServer, DataInputStream fromServer) throws IOException {
 		try {

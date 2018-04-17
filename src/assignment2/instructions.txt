@@ -5,7 +5,7 @@ javac -cp . assignment2/Client.java
 javac -cp . assignment2/Server.java
 
 RUNNING OF PROGRAM
-java assignment2.Server
+java assignment2.Server [port]
 java assignment2.Client [filename] [serverAddress] [port] [mode]
 
 Where mode = 1 is CP-1, and mode = 2 is CP-2.
